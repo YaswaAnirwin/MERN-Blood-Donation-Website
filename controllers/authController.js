@@ -3,15 +3,21 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const registerController = async (req, res) => {
-  console.log(req.body)
   try {
-    console.log(req.body.email)
-    const exisitingUser = await userModel.findOne({ email: req.body.email });
+    const email = req.body.email;
+    if (typeof email !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    const exisitingUser = await userModel.findOne({ email: { $eq: email } }); // SECURITY FIX: Use $eq to prevent NoSQL injection
     //validation
     if (exisitingUser) {
       return res.status(200).send({
         success: false,
-        message: "User ALready exists",
+        message: "User Already exists",
       });
     }
     //hash password
@@ -21,18 +27,17 @@ const registerController = async (req, res) => {
     //rest data
     const user = new userModel(req.body);
     await user.save();
-    console.log(req.body)
     return res.status(201).send({
       success: true,
-      message: "User Registerd Successfully",
+      message: "User Registered Successfully",
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error); // SECURITY FIX: Use console.error for better error logging
     res.status(500).send({
       success: false,
       message: "Error In Register API",
-      error,
+      error: error.message,
     });
   }
 };
@@ -40,7 +45,15 @@ const registerController = async (req, res) => {
 //login call back
 const loginController = async (req, res) => {
   try {
-    const user = await userModel.findOne({ email: req.body.email });
+    const email = req.body.email;
+    if (typeof email !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    const user = await userModel.findOne({ email: { $eq: email } }); // SECURITY FIX: Use $eq to prevent NoSQL injection
     if (!user) {
       return res.status(404).send({
         success: false,
@@ -49,9 +62,9 @@ const loginController = async (req, res) => {
     }
     //check role
     if (user.role !== req.body.role) {
-      return res.status(500).send({
+      return res.status(403).send({
         success: false,
-        message: "role dosent match",
+        message: "Role doesn't match",
       });
     }
     //compare password
@@ -60,7 +73,7 @@ const loginController = async (req, res) => {
       user.password
     );
     if (!comparePassword) {
-      return res.status(500).send({
+      return res.status(401).send({
         success: false,
         message: "Invalid Credentials",
       });
@@ -75,11 +88,11 @@ const loginController = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error); // SECURITY FIX: Use console.error for better error logging
     res.status(500).send({
       success: false,
       message: "Error In Login API",
-      error,
+      error: error.message,
     });
   }
 };
@@ -87,18 +100,32 @@ const loginController = async (req, res) => {
 //GET CURRENT USER
 const currentUserController = async (req, res) => {
   try {
-    const user = await userModel.findOne({ _id: req.body.userId });
+    const userId = req.body.userId;
+    if (typeof userId !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid user ID format",
+      });
+    }
+
+    const user = await userModel.findOne({ _id: { $eq: userId } }); // SECURITY FIX: Use $eq to prevent NoSQL injection
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
     return res.status(200).send({
       success: true,
       message: "User Fetched Successfully",
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error); // SECURITY FIX: Use console.error for better error logging
     return res.status(500).send({
       success: false,
-      message: "unable to get current user",
-      error,
+      message: "Unable to get current user",
+      error: error.message,
     });
   }
 };

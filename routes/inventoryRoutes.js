@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit"); // Required for rate limiting
 const authMiddelware = require("../middlewares/authMiddelware");
 const {
   createInventoryController,
@@ -14,12 +15,23 @@ const {
 
 const router = express.Router();
 
+// Set up rate limiter: maximum of 100 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later." // Custom message for rate limit exceeded
+});
+
+// Apply rate limiter to all routes
+router.use(limiter);
+
 //routes
 // ADD INVENTORY || POST
 router.post("/create-inventory", authMiddelware, createInventoryController);
 
 //GET ALL BLOOD RECORDS
 router.get("/get-inventory", authMiddelware, getInventoryController);
+
 //GET RECENT BLOOD RECORDS
 router.get(
   "/get-recent-inventory",
@@ -36,8 +48,9 @@ router.post(
 
 //GET DONAR RECORDS
 router.get("/get-donars", authMiddelware, getDonarsController);
+
 //Get Admin
-router.get("/get-admin", authMiddelware, getDonarsController);
+router.get("/get-admin", authMiddelware, getAdminController); // SECURITY FIX: Corrected to use getAdminController
 
 //GET HOSPITAL RECORDS
 router.get("/get-hospitals", authMiddelware, getHospitalController);

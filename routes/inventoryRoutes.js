@@ -1,5 +1,6 @@
 const express = require("express");
 const authMiddelware = require("../middlewares/authMiddelware");
+const rateLimit = require("express-rate-limit"); // SECURITY FIX: Added rate-limiting middleware
 const {
   createInventoryController,
   getInventoryController,
@@ -13,6 +14,15 @@ const {
 } = require("../controllers/inventoryController");
 
 const router = express.Router();
+
+// SECURITY FIX: Set up rate limiter: maximum of 100 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+});
+
+// Apply rate limiter to all routes
+router.use(limiter);
 
 //routes
 // ADD INVENTORY || POST

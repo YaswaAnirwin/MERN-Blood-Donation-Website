@@ -3,15 +3,15 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const registerController = async (req, res) => {
-  console.log(req.body)
+  console.log(req.body);
   try {
-    console.log(req.body.email)
-    const exisitingUser = await userModel.findOne({ email: req.body.email });
+    console.log(req.body.email);
+    const exisitingUser = await userModel.findOne({ email: { $eq: req.body.email } }); // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     //validation
     if (exisitingUser) {
       return res.status(200).send({
         success: false,
-        message: "User ALready exists",
+        message: "User Already exists",
       });
     }
     //hash password
@@ -21,14 +21,14 @@ const registerController = async (req, res) => {
     //rest data
     const user = new userModel(req.body);
     await user.save();
-    console.log(req.body)
+    console.log(req.body);
     return res.status(201).send({
       success: true,
-      message: "User Registerd Successfully",
+      message: "User Registered Successfully",
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error); // SECURITY FIX: Use console.error for better error visibility
     res.status(500).send({
       success: false,
       message: "Error In Register API",
@@ -40,7 +40,7 @@ const registerController = async (req, res) => {
 //login call back
 const loginController = async (req, res) => {
   try {
-    const user = await userModel.findOne({ email: req.body.email });
+    const user = await userModel.findOne({ email: { $eq: req.body.email } }); // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     if (!user) {
       return res.status(404).send({
         success: false,
@@ -51,7 +51,7 @@ const loginController = async (req, res) => {
     if (user.role !== req.body.role) {
       return res.status(500).send({
         success: false,
-        message: "role dosent match",
+        message: "Role doesn't match",
       });
     }
     //compare password
@@ -75,7 +75,7 @@ const loginController = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error); // SECURITY FIX: Use console.error for better error visibility
     res.status(500).send({
       success: false,
       message: "Error In Login API",
@@ -87,17 +87,17 @@ const loginController = async (req, res) => {
 //GET CURRENT USER
 const currentUserController = async (req, res) => {
   try {
-    const user = await userModel.findOne({ _id: req.body.userId });
+    const user = await userModel.findOne({ _id: { $eq: req.body.userId } }); // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     return res.status(200).send({
       success: true,
       message: "User Fetched Successfully",
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error); // SECURITY FIX: Use console.error for better error visibility
     return res.status(500).send({
       success: false,
-      message: "unable to get current user",
+      message: "Unable to get current user",
       error,
     });
   }

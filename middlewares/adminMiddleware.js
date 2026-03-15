@@ -1,8 +1,19 @@
 const userModel = require("../models/userModel");
 module.exports = async (req, res, next) => {
   try {
-    const user = await userModel.findById(req.body.userId);
-    //check admin
+    // Validate and sanitize userId input
+    const userId = req.body.userId;
+    if (typeof userId !== "string" || userId.trim() === "") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    // Use $eq operator to prevent NoSQL injection
+    const user = await userModel.findOne({ _id: { $eq: userId } });
+
+    // Check admin
     if (user?.role !== "admin") {
       return res.status(401).send({
         success: false,
@@ -12,11 +23,11 @@ module.exports = async (req, res, next) => {
       next();
     }
   } catch (error) {
-    console.log(error);
-    return res.status(401).send({
+    console.error("Error in admin middleware:", error); // SECURITY FIX: Log error with context
+    return res.status(500).send({
       success: false,
       message: "Auth Failed, ADMIN API",
-      errro,
+      error: error.message, // SECURITY FIX: Provide error message without exposing sensitive details
     });
   }
 };

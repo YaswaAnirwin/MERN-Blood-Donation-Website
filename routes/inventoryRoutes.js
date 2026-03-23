@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit"); // Required for rate limiting
 const authMiddelware = require("../middlewares/authMiddelware");
 const {
   createInventoryController,
@@ -13,6 +14,16 @@ const {
 } = require("../controllers/inventoryController");
 
 const router = express.Router();
+
+// Rate limiter middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later."
+});
+
+// Apply rate limiter to all routes
+router.use(limiter);
 
 //routes
 // ADD INVENTORY || POST

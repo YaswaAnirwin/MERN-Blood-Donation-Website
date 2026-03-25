@@ -95,7 +95,7 @@ const getInventoryController = async (req, res) => {
   try {
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: { $eq: req.body.userId }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
       })
       .populate("donar")
       .populate("hospital")
@@ -117,8 +117,15 @@ const getInventoryController = async (req, res) => {
 // GET Hospital BLOOD RECORS
 const getInventoryHospitalController = async (req, res) => {
   try {
+    const filters = req.body.filters;
+    if (typeof filters !== "object" || Array.isArray(filters)) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid filters format",
+      });
+    }
     const inventory = await inventoryModel
-      .find(req.body.filters)
+      .find(filters) // SECURITY FIX: Ensure filters are validated before use
       .populate("donar")
       .populate("hospital")
       .populate("organisation")
@@ -143,7 +150,7 @@ const getRecentInventoryController = async (req, res) => {
   try {
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: { $eq: req.body.userId }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
       })
       .limit(3)
       .sort({ createdAt: -1 });
@@ -166,9 +173,15 @@ const getRecentInventoryController = async (req, res) => {
 const getDonarsController = async (req, res) => {
   try {
     const organisation = req.body.userId;
+    if (typeof organisation !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid organisation ID format",
+      });
+    }
     //find donars
     const donorId = await inventoryModel.distinct("donar", {
-      organisation,
+      organisation: { $eq: organisation }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     });
     // console.log(donorId);
     const donars = await userModel.find({ _id: { $in: donorId } });
@@ -191,9 +204,15 @@ const getDonarsController = async (req, res) => {
 const getHospitalController = async (req, res) => {
   try {
     const organisation = req.body.userId;
+    if (typeof organisation !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid organisation ID format",
+      });
+    }
     //GET HOSPITAL ID
     const hospitalId = await inventoryModel.distinct("hospital", {
-      organisation,
+      organisation: { $eq: organisation }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     });
     //FIND HOSPITAL
     const hospitals = await userModel.find({
@@ -218,7 +237,15 @@ const getHospitalController = async (req, res) => {
 const getOrgnaisationController = async (req, res) => {
   try {
     const donar = req.body.userId;
-    const orgId = await inventoryModel.distinct("organisation", { donar });
+    if (typeof donar !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid donar ID format",
+      });
+    }
+    const orgId = await inventoryModel.distinct("organisation", {
+      donar: { $eq: donar }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
+    });
     //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
@@ -241,7 +268,15 @@ const getOrgnaisationController = async (req, res) => {
 const getOrgnaisationForHospitalController = async (req, res) => {
   try {
     const hospital = req.body.userId;
-    const orgId = await inventoryModel.distinct("organisation", { hospital });
+    if (typeof hospital !== "string") {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid hospital ID format",
+      });
+    }
+    const orgId = await inventoryModel.distinct("organisation", {
+      hospital: { $eq: hospital }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
+    });
     //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },

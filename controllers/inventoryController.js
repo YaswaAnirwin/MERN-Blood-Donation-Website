@@ -7,7 +7,7 @@ const createInventoryController = async (req, res) => {
   try {
     const { email } = req.body;
     //validation
-    const user = await userModel.findOne({ email });
+    const user = await userModel.findOne({ email: { $eq: email } });
     if (!user) {
       throw new Error("User Not Found");
     }
@@ -26,7 +26,7 @@ const createInventoryController = async (req, res) => {
       const totalInOfRequestedBlood = await inventoryModel.aggregate([
         {
           $match: {
-            organisation,
+            organisation: { $eq: organisation },
             inventoryType: "in",
             bloodGroup: requestedBloodGroup,
           },
@@ -45,7 +45,7 @@ const createInventoryController = async (req, res) => {
       const totalOutOfRequestedBloodGroup = await inventoryModel.aggregate([
         {
           $match: {
-            organisation,
+            organisation: { $eq: organisation },
             inventoryType: "out",
             bloodGroup: requestedBloodGroup,
           },
@@ -95,7 +95,7 @@ const getInventoryController = async (req, res) => {
   try {
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: { $eq: req.body.userId },
       })
       .populate("donar")
       .populate("hospital")
@@ -143,7 +143,7 @@ const getRecentInventoryController = async (req, res) => {
   try {
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: { $eq: req.body.userId },
       })
       .limit(3)
       .sort({ createdAt: -1 });
@@ -168,7 +168,7 @@ const getDonarsController = async (req, res) => {
     const organisation = req.body.userId;
     //find donars
     const donorId = await inventoryModel.distinct("donar", {
-      organisation,
+      organisation: { $eq: organisation },
     });
     // console.log(donorId);
     const donars = await userModel.find({ _id: { $in: donorId } });
@@ -193,7 +193,7 @@ const getHospitalController = async (req, res) => {
     const organisation = req.body.userId;
     //GET HOSPITAL ID
     const hospitalId = await inventoryModel.distinct("hospital", {
-      organisation,
+      organisation: { $eq: organisation },
     });
     //FIND HOSPITAL
     const hospitals = await userModel.find({
@@ -218,7 +218,7 @@ const getHospitalController = async (req, res) => {
 const getOrgnaisationController = async (req, res) => {
   try {
     const donar = req.body.userId;
-    const orgId = await inventoryModel.distinct("organisation", { donar });
+    const orgId = await inventoryModel.distinct("organisation", { donar: { $eq: donar } });
     //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
@@ -241,7 +241,7 @@ const getOrgnaisationController = async (req, res) => {
 const getOrgnaisationForHospitalController = async (req, res) => {
   try {
     const hospital = req.body.userId;
-    const orgId = await inventoryModel.distinct("organisation", { hospital });
+    const orgId = await inventoryModel.distinct("organisation", { hospital: { $eq: hospital } });
     //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },

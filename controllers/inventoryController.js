@@ -7,28 +7,22 @@ const createInventoryController = async (req, res) => {
   try {
     const { email } = req.body;
     //validation
-    const user = await userModel.findOne({ email });
+    const user = await userModel.findOne({ email: { $eq: email } }); // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     if (!user) {
       throw new Error("User Not Found");
     }
-    // if (inventoryType === "in" && user.role !== "donar") {
-    //   throw new Error("Not a donar account");
-    // }
-    // if (inventoryType === "out" && user.role !== "hospital") {
-    //   throw new Error("Not a hospital");
-    // }
 
     if (req.body.inventoryType == "out") {
       const requestedBloodGroup = req.body.bloodGroup;
       const requestedQuantityOfBlood = req.body.quantity;
       const organisation = new mongoose.Types.ObjectId(req.body.userId);
-      //calculate Blood Quanitity
+      //calculate Blood Quantity
       const totalInOfRequestedBlood = await inventoryModel.aggregate([
         {
           $match: {
-            organisation,
+            organisation: { $eq: organisation }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
             inventoryType: "in",
-            bloodGroup: requestedBloodGroup,
+            bloodGroup: { $eq: requestedBloodGroup }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
           },
         },
         {
@@ -38,16 +32,14 @@ const createInventoryController = async (req, res) => {
           },
         },
       ]);
-      // console.log("Total In", totalInOfRequestedBlood);
       const totalIn = totalInOfRequestedBlood[0]?.total || 0;
-      //calculate OUT Blood Quanitity
-
+      //calculate OUT Blood Quantity
       const totalOutOfRequestedBloodGroup = await inventoryModel.aggregate([
         {
           $match: {
-            organisation,
+            organisation: { $eq: organisation }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
             inventoryType: "out",
-            bloodGroup: requestedBloodGroup,
+            bloodGroup: { $eq: requestedBloodGroup }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
           },
         },
         {
@@ -78,31 +70,31 @@ const createInventoryController = async (req, res) => {
     await inventory.save();
     return res.status(201).send({
       success: true,
-      message: "New Blood Reocrd Added",
+      message: "New Blood Record Added",
     });
   } catch (error) {
     console.log(error);
     return res.status(500).send({
       success: false,
-      message: "Errro In Create Inventory API",
+      message: "Error In Create Inventory API",
       error,
     });
   }
 };
 
-// GET ALL BLOOD RECORS
+// GET ALL BLOOD RECORDS
 const getInventoryController = async (req, res) => {
   try {
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: { $eq: req.body.userId }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
       })
       .populate("donar")
       .populate("hospital")
       .sort({ createdAt: -1 });
     return res.status(200).send({
       success: true,
-      messaage: "get all records successfully",
+      messaage: "Get all records successfully",
       inventory,
     });
   } catch (error) {
@@ -114,18 +106,24 @@ const getInventoryController = async (req, res) => {
     });
   }
 };
-// GET Hospital BLOOD RECORS
+
+// GET Hospital BLOOD RECORDS
 const getInventoryHospitalController = async (req, res) => {
   try {
+    const filters = req.body.filters;
+    const sanitizedFilters = {};
+    for (const key in filters) {
+      sanitizedFilters[key] = { $eq: filters[key] }; // SECURITY FIX: Use $eq operator to prevent NoSQL injection
+    }
     const inventory = await inventoryModel
-      .find(req.body.filters)
+      .find(sanitizedFilters)
       .populate("donar")
       .populate("hospital")
       .populate("organisation")
       .sort({ createdAt: -1 });
     return res.status(200).send({
       success: true,
-      messaage: "get hospital comsumer records successfully",
+      messaage: "Get hospital consumer records successfully",
       inventory,
     });
   } catch (error) {
@@ -143,13 +141,13 @@ const getRecentInventoryController = async (req, res) => {
   try {
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: { $eq: req.body.userId }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
       })
       .limit(3)
       .sort({ createdAt: -1 });
     return res.status(200).send({
       success: true,
-      message: "recent Invenotry Data",
+      message: "Recent Inventory Data",
       inventory,
     });
   } catch (error) {
@@ -162,27 +160,26 @@ const getRecentInventoryController = async (req, res) => {
   }
 };
 
-// GET DONAR REOCRDS
+// GET DONOR RECORDS
 const getDonarsController = async (req, res) => {
   try {
     const organisation = req.body.userId;
-    //find donars
+    //find donors
     const donorId = await inventoryModel.distinct("donar", {
-      organisation,
+      organisation: { $eq: organisation }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     });
-    // console.log(donorId);
     const donars = await userModel.find({ _id: { $in: donorId } });
 
     return res.status(200).send({
       success: true,
-      message: "Donar Record Fetched Successfully",
+      message: "Donor Record Fetched Successfully",
       donars,
     });
   } catch (error) {
     console.log(error);
     return res.status(500).send({
       success: false,
-      message: "Error in Donar records",
+      message: "Error in Donor records",
       error,
     });
   }
@@ -193,7 +190,7 @@ const getHospitalController = async (req, res) => {
     const organisation = req.body.userId;
     //GET HOSPITAL ID
     const hospitalId = await inventoryModel.distinct("hospital", {
-      organisation,
+      organisation: { $eq: organisation }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
     });
     //FIND HOSPITAL
     const hospitals = await userModel.find({
@@ -218,7 +215,9 @@ const getHospitalController = async (req, res) => {
 const getOrgnaisationController = async (req, res) => {
   try {
     const donar = req.body.userId;
-    const orgId = await inventoryModel.distinct("organisation", { donar });
+    const orgId = await inventoryModel.distinct("organisation", {
+      donar: { $eq: donar }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
+    });
     //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
@@ -237,11 +236,14 @@ const getOrgnaisationController = async (req, res) => {
     });
   }
 };
+
 // GET ORG for Hospital
 const getOrgnaisationForHospitalController = async (req, res) => {
   try {
     const hospital = req.body.userId;
-    const orgId = await inventoryModel.distinct("organisation", { hospital });
+    const orgId = await inventoryModel.distinct("organisation", {
+      hospital: { $eq: hospital }, // SECURITY FIX: Use $eq operator to prevent NoSQL injection
+    });
     //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },

@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit"); // SECURITY: Added rate-limiting to prevent DoS and brute force attacks
 const authMiddelware = require("../middlewares/authMiddelware");
 const {
   createInventoryController,
@@ -13,6 +14,16 @@ const {
 } = require("../controllers/inventoryController");
 
 const router = express.Router();
+
+// Rate limiter configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests, please try again later.", // SECURITY: Informative message for rate-limiting
+});
+
+// Apply rate limiter to all routes
+router.use(limiter);
 
 //routes
 // ADD INVENTORY || POST
@@ -37,7 +48,7 @@ router.post(
 //GET DONAR RECORDS
 router.get("/get-donars", authMiddelware, getDonarsController);
 //Get Admin
-router.get("/get-admin", authMiddelware, getDonarsController);
+router.get("/get-admin", authMiddelware, getAdminController); // SECURITY: Fixed incorrect controller mapping
 
 //GET HOSPITAL RECORDS
 router.get("/get-hospitals", authMiddelware, getHospitalController);

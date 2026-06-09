@@ -11,12 +11,6 @@ const createInventoryController = async (req, res) => {
     if (!user) {
       throw new Error("User Not Found");
     }
-    // if (inventoryType === "in" && user.role !== "donar") {
-    //   throw new Error("Not a donar account");
-    // }
-    // if (inventoryType === "out" && user.role !== "hospital") {
-    //   throw new Error("Not a hospital");
-    // }
 
     if (req.body.inventoryType == "out") {
       const requestedBloodGroup = req.body.bloodGroup;
@@ -38,9 +32,7 @@ const createInventoryController = async (req, res) => {
           },
         },
       ]);
-      // console.log("Total In", totalInOfRequestedBlood);
       const totalIn = totalInOfRequestedBlood[0]?.total || 0;
-      //calculate OUT Blood Quanitity
 
       const totalOutOfRequestedBloodGroup = await inventoryModel.aggregate([
         {
@@ -59,9 +51,7 @@ const createInventoryController = async (req, res) => {
       ]);
       const totalOut = totalOutOfRequestedBloodGroup[0]?.total || 0;
 
-      //in & Out Calc
       const availableQuanityOfBloodGroup = totalIn - totalOut;
-      //quantity validation
       if (availableQuanityOfBloodGroup < requestedQuantityOfBlood) {
         return res.status(500).send({
           success: false,
@@ -78,31 +68,32 @@ const createInventoryController = async (req, res) => {
     await inventory.save();
     return res.status(201).send({
       success: true,
-      message: "New Blood Reocrd Added",
+      message: "New Blood Record Added",
     });
   } catch (error) {
     console.log(error);
     return res.status(500).send({
       success: false,
-      message: "Errro In Create Inventory API",
+      message: "Error In Create Inventory API",
       error,
     });
   }
 };
 
-// GET ALL BLOOD RECORS
+// GET ALL BLOOD RECORDS
 const getInventoryController = async (req, res) => {
   try {
+    const userId = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: userId,
       })
       .populate("donar")
       .populate("hospital")
       .sort({ createdAt: -1 });
     return res.status(200).send({
       success: true,
-      messaage: "get all records successfully",
+      messaage: "Get all records successfully",
       inventory,
     });
   } catch (error) {
@@ -114,18 +105,26 @@ const getInventoryController = async (req, res) => {
     });
   }
 };
-// GET Hospital BLOOD RECORS
+
+// GET Hospital BLOOD RECORDS
 const getInventoryHospitalController = async (req, res) => {
   try {
+    const filters = req.body.filters || {};
+    const sanitizedFilters = {};
+    // SECURITY: Validate and sanitize filters
+    if (filters.donar) sanitizedFilters.donar = mongoose.Types.ObjectId(filters.donar);
+    if (filters.hospital) sanitizedFilters.hospital = mongoose.Types.ObjectId(filters.hospital);
+    if (filters.organisation) sanitizedFilters.organisation = mongoose.Types.ObjectId(filters.organisation);
+
     const inventory = await inventoryModel
-      .find(req.body.filters)
+      .find(sanitizedFilters)
       .populate("donar")
       .populate("hospital")
       .populate("organisation")
       .sort({ createdAt: -1 });
     return res.status(200).send({
       success: true,
-      messaage: "get hospital comsumer records successfully",
+      messaage: "Get hospital consumer records successfully",
       inventory,
     });
   } catch (error) {
@@ -141,15 +140,16 @@ const getInventoryHospitalController = async (req, res) => {
 // GET BLOOD RECORD OF 3
 const getRecentInventoryController = async (req, res) => {
   try {
+    const userId = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: userId,
       })
       .limit(3)
       .sort({ createdAt: -1 });
     return res.status(200).send({
       success: true,
-      message: "recent Invenotry Data",
+      message: "Recent Inventory Data",
       inventory,
     });
   } catch (error) {
@@ -162,27 +162,25 @@ const getRecentInventoryController = async (req, res) => {
   }
 };
 
-// GET DONAR REOCRDS
+// GET DONOR RECORDS
 const getDonarsController = async (req, res) => {
   try {
-    const organisation = req.body.userId;
-    //find donars
+    const organisation = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const donorId = await inventoryModel.distinct("donar", {
       organisation,
     });
-    // console.log(donorId);
     const donars = await userModel.find({ _id: { $in: donorId } });
 
     return res.status(200).send({
       success: true,
-      message: "Donar Record Fetched Successfully",
+      message: "Donor Record Fetched Successfully",
       donars,
     });
   } catch (error) {
     console.log(error);
     return res.status(500).send({
       success: false,
-      message: "Error in Donar records",
+      message: "Error in Donor records",
       error,
     });
   }
@@ -190,12 +188,10 @@ const getDonarsController = async (req, res) => {
 
 const getHospitalController = async (req, res) => {
   try {
-    const organisation = req.body.userId;
-    //GET HOSPITAL ID
+    const organisation = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const hospitalId = await inventoryModel.distinct("hospital", {
       organisation,
     });
-    //FIND HOSPITAL
     const hospitals = await userModel.find({
       _id: { $in: hospitalId },
     });
@@ -208,7 +204,7 @@ const getHospitalController = async (req, res) => {
     console.log(error);
     return res.status(500).send({
       success: false,
-      message: "Error In get Hospital API",
+      message: "Error In Get Hospital API",
       error,
     });
   }
@@ -217,9 +213,8 @@ const getHospitalController = async (req, res) => {
 // GET ORG PROFILES
 const getOrgnaisationController = async (req, res) => {
   try {
-    const donar = req.body.userId;
+    const donar = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const orgId = await inventoryModel.distinct("organisation", { donar });
-    //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
     });
@@ -237,12 +232,12 @@ const getOrgnaisationController = async (req, res) => {
     });
   }
 };
+
 // GET ORG for Hospital
 const getOrgnaisationForHospitalController = async (req, res) => {
   try {
-    const hospital = req.body.userId;
+    const hospital = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const orgId = await inventoryModel.distinct("organisation", { hospital });
-    //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
     });

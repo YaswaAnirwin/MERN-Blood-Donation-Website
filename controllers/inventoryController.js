@@ -11,12 +11,6 @@ const createInventoryController = async (req, res) => {
     if (!user) {
       throw new Error("User Not Found");
     }
-    // if (inventoryType === "in" && user.role !== "donar") {
-    //   throw new Error("Not a donar account");
-    // }
-    // if (inventoryType === "out" && user.role !== "hospital") {
-    //   throw new Error("Not a hospital");
-    // }
 
     if (req.body.inventoryType == "out") {
       const requestedBloodGroup = req.body.bloodGroup;
@@ -38,9 +32,7 @@ const createInventoryController = async (req, res) => {
           },
         },
       ]);
-      // console.log("Total In", totalInOfRequestedBlood);
       const totalIn = totalInOfRequestedBlood[0]?.total || 0;
-      //calculate OUT Blood Quanitity
 
       const totalOutOfRequestedBloodGroup = await inventoryModel.aggregate([
         {
@@ -114,6 +106,7 @@ const getInventoryController = async (req, res) => {
     });
   }
 };
+
 // GET Hospital BLOOD RECORS
 const getInventoryHospitalController = async (req, res) => {
   try {
@@ -170,7 +163,6 @@ const getDonarsController = async (req, res) => {
     const donorId = await inventoryModel.distinct("donar", {
       organisation,
     });
-    // console.log(donorId);
     const donars = await userModel.find({ _id: { $in: donorId } });
 
     return res.status(200).send({
@@ -219,7 +211,6 @@ const getOrgnaisationController = async (req, res) => {
   try {
     const donar = req.body.userId;
     const orgId = await inventoryModel.distinct("organisation", { donar });
-    //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
     });
@@ -237,12 +228,12 @@ const getOrgnaisationController = async (req, res) => {
     });
   }
 };
+
 // GET ORG for Hospital
 const getOrgnaisationForHospitalController = async (req, res) => {
   try {
     const hospital = req.body.userId;
     const orgId = await inventoryModel.distinct("organisation", { hospital });
-    //find org
     const organisations = await userModel.find({
       _id: { $in: orgId },
     });

@@ -93,9 +93,10 @@ const createInventoryController = async (req, res) => {
 // GET ALL BLOOD RECORS
 const getInventoryController = async (req, res) => {
   try {
+    const userId = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: userId,
       })
       .populate("donar")
       .populate("hospital")
@@ -117,8 +118,21 @@ const getInventoryController = async (req, res) => {
 // GET Hospital BLOOD RECORS
 const getInventoryHospitalController = async (req, res) => {
   try {
+    const filters = req.body.filters || {};
+    const sanitizedFilters = {};
+    // SECURITY: Validate and sanitize filters
+    if (filters.organisation) {
+      sanitizedFilters.organisation = mongoose.Types.ObjectId(filters.organisation);
+    }
+    if (filters.bloodGroup) {
+      sanitizedFilters.bloodGroup = filters.bloodGroup;
+    }
+    if (filters.inventoryType) {
+      sanitizedFilters.inventoryType = filters.inventoryType;
+    }
+
     const inventory = await inventoryModel
-      .find(req.body.filters)
+      .find(sanitizedFilters)
       .populate("donar")
       .populate("hospital")
       .populate("organisation")
@@ -141,9 +155,10 @@ const getInventoryHospitalController = async (req, res) => {
 // GET BLOOD RECORD OF 3
 const getRecentInventoryController = async (req, res) => {
   try {
+    const userId = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const inventory = await inventoryModel
       .find({
-        organisation: req.body.userId,
+        organisation: userId,
       })
       .limit(3)
       .sort({ createdAt: -1 });
@@ -165,7 +180,7 @@ const getRecentInventoryController = async (req, res) => {
 // GET DONAR REOCRDS
 const getDonarsController = async (req, res) => {
   try {
-    const organisation = req.body.userId;
+    const organisation = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     //find donars
     const donorId = await inventoryModel.distinct("donar", {
       organisation,
@@ -190,7 +205,7 @@ const getDonarsController = async (req, res) => {
 
 const getHospitalController = async (req, res) => {
   try {
-    const organisation = req.body.userId;
+    const organisation = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     //GET HOSPITAL ID
     const hospitalId = await inventoryModel.distinct("hospital", {
       organisation,
@@ -217,7 +232,7 @@ const getHospitalController = async (req, res) => {
 // GET ORG PROFILES
 const getOrgnaisationController = async (req, res) => {
   try {
-    const donar = req.body.userId;
+    const donar = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const orgId = await inventoryModel.distinct("organisation", { donar });
     //find org
     const organisations = await userModel.find({
@@ -240,7 +255,7 @@ const getOrgnaisationController = async (req, res) => {
 // GET ORG for Hospital
 const getOrgnaisationForHospitalController = async (req, res) => {
   try {
-    const hospital = req.body.userId;
+    const hospital = mongoose.Types.ObjectId(req.body.userId); // SECURITY: Ensure userId is a valid ObjectId
     const orgId = await inventoryModel.distinct("organisation", { hospital });
     //find org
     const organisations = await userModel.find({
